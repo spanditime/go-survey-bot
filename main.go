@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"time"
+
+	"log"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"log"
 )
 
 // library part
@@ -23,6 +26,7 @@ func (u User) FullName() string {
 }
 
 type Update interface {
+  Provider() string
 	ChatID() string
 	GetSender() User
 	GetMessage() string
@@ -183,6 +187,9 @@ func newTelegramUpdate(api *tgbotapi.BotAPI, tg_update tgbotapi.Update) *Telegra
 	}
 }
 
+func (upd *TelegramUpdate) Provider() string {
+  return "tg"
+}
 func (upd *TelegramUpdate) ChatID() string {
 	ch := upd.update.FromChat()
 	if ch != nil {
@@ -194,13 +201,13 @@ func (upd *TelegramUpdate) GetSender() User {
 	sent_from := upd.update.SentFrom()
 	var name, surname, username, id string
 	if sent_from != nil {
-		name, surname, username, id = sent_from.FirstName, sent_from.LastName, sent_from.UserName, fmt.Sprintf("tg",sent_from.ID)
+		name, surname, username, id = sent_from.FirstName, sent_from.LastName, sent_from.UserName, fmt.Sprint("tg", sent_from.ID)
 	}
 	return User{
-		Name:    name,
-		Surname: surname,
-		Id:      id,
-    UserName: username,
+		Name:     name,
+		Surname:  surname,
+		Id:       id,
+		UserName: username,
 	}
 }
 func (upd *TelegramUpdate) GetMessage() string {
@@ -425,22 +432,31 @@ const (
 	CityKey    = "city"
 	RequestKey = "request"
 	ContactKey = "contact"
+
+	GOOGLE_CRED           = "GOOGLE_CREDENTIALS_FILE"
+	GOOGLE_SHEET_NAME     = "GOOGLE_SHEET_NAME"
+	GOOGLE_SPREADSHEET_ID = "GOOGLE_SPREADSHEET_ID"
+	TELEGRAM_TOKEN        = "TELEGRAM_BOT_TOKEN"
 )
 
-func newStartQuestion() ConversationHandler {
+type surveyFabric struct {
+	db *SurveyDB
+}
+
+func (f *surveyFabric) newStartQuestion() ConversationHandler {
 	handle := func(answer string, ctx ConvCtx) error {
 		if answer == "/start" {
-			return TransitionStageAction(newWelcomeQuestion)(answer, ctx)
+			return TransitionStageAction(f.newWelcomeQuestion)(answer, ctx)
 		}
 		return nil
 	}
 	return NewConversationAnswerHandler(EmptyAction(), StartMessage, handle)
 }
 
-func newWelcomeQuestion() ConversationHandler {
+func (f *surveyFabric) newWelcomeQuestion() ConversationHandler {
 	log.Println("creating welcome question")
-	next := TransitionStageActionCtx(newNameQuestion(false))
-	cancel := TransitionStageAction(newStartQuestion)
+	next := TransitionStageActionCtx(f.newNameQuestion(false))
+	cancel := TransitionStageAction(f.newStartQuestion)
 	return newYesNoConversationHandler(GoToSurvey, SendTextAction(WelcomeMessage, EmptyAction()), cancel, next, cancel)
 }
 
@@ -454,11 +470,11 @@ func saveSurveyAnswer(key string, fall bool, save ConversationAction, next Conve
 	return action
 }
 
-func newNameQuestion(fall bool) func(answer string, ctx ConvCtx) ConversationHandler {
+func (f *surveyFabric) newNameQuestion(fall bool) func(answer string, ctx ConvCtx) ConversationHandler {
 	return func(answer string, ctx ConvCtx) ConversationHandler {
-		cancel := TransitionStageAction(newStartQuestion)
+		cancel := TransitionStageAction(f.newStartQuestion)
 		defaultName := ctx.Update().GetSender().FullName()
-		save := saveSurveyAnswer(NameKey, fall, TransitionStageActionCtx(newSaveQuestion), TransitionStageActionCtx(newAgeQuestion(false)))
+		save := saveSurveyAnswer(NameKey, fall, TransitionStageActionCtx(f.newSaveQuestion), TransitionStageActionCtx(f.newAgeQuestion(false)))
 		handlers := ConversationOptionsHandlers{
 			Cancel:      cancel,
 			defaultName: save,
@@ -467,10 +483,10 @@ func newNameQuestion(fall bool) func(answer string, ctx ConvCtx) ConversationHan
 	}
 }
 
-func newAgeQuestion(fall bool) func(answer string, ctx ConvCtx) ConversationHandler {
+func (f *surveyFabric) newAgeQuestion(fall bool) func(answer string, ctx ConvCtx) ConversationHandler {
 	return func(answer string, ctx ConvCtx) ConversationHandler {
-		cancel := TransitionStageAction(newStartQuestion)
-		save := saveSurveyAnswer(AgeKey, fall, TransitionStageActionCtx(newSaveQuestion), TransitionStageActionCtx(newCityQuestion(false)))
+		cancel := TransitionStageAction(f.newStartQuestion)
+		save := saveSurveyAnswer(AgeKey, fall, TransitionStageActionCtx(f.newSaveQuestion), TransitionStageActionCtx(f.newCityQuestion(false)))
 		handlers := ConversationOptionsHandlers{
 			Cancel: cancel,
 		}
@@ -483,10 +499,10 @@ func newAgeQuestion(fall bool) func(answer string, ctx ConvCtx) ConversationHand
 	}
 }
 
-func newCityQuestion(fall bool) func(answer string, ctx ConvCtx) ConversationHandler {
+func (f *surveyFabric) newCityQuestion(fall bool) func(answer string, ctx ConvCtx) ConversationHandler {
 	return func(answer string, ctx ConvCtx) ConversationHandler {
-		cancel := TransitionStageAction(newStartQuestion)
-		save := saveSurveyAnswer(CityKey, fall, TransitionStageActionCtx(newSaveQuestion), TransitionStageActionCtx(newRequestQuestion(false)))
+		cancel := TransitionStageAction(f.newStartQuestion)
+		save := saveSurveyAnswer(CityKey, fall, TransitionStageActionCtx(f.newSaveQuestion), TransitionStageActionCtx(f.newRequestQuestion(false)))
 		handlers := ConversationOptionsHandlers{
 			Cancel: cancel,
 			Yes:    save,
@@ -495,10 +511,10 @@ func newCityQuestion(fall bool) func(answer string, ctx ConvCtx) ConversationHan
 	}
 }
 
-func newRequestQuestion(fall bool) func(answer string, ctx ConvCtx) ConversationHandler {
+func (f *surveyFabric) newRequestQuestion(fall bool) func(answer string, ctx ConvCtx) ConversationHandler {
 	return func(answer string, ctx ConvCtx) ConversationHandler {
-		cancel := TransitionStageAction(newStartQuestion)
-		save := saveSurveyAnswer(RequestKey, fall, TransitionStageActionCtx(newSaveQuestion), TransitionStageActionCtx(newContactQuestion))
+		cancel := TransitionStageAction(f.newStartQuestion)
+		save := saveSurveyAnswer(RequestKey, fall, TransitionStageActionCtx(f.newSaveQuestion), TransitionStageActionCtx(f.newContactQuestion))
 		handlers := ConversationOptionsHandlers{
 			Cancel: cancel,
 		}
@@ -506,22 +522,22 @@ func newRequestQuestion(fall bool) func(answer string, ctx ConvCtx) Conversation
 	}
 }
 
-func newContactQuestion(answer string, ctx ConvCtx) ConversationHandler {
-	cancel := TransitionStageAction(newStartQuestion)
-	save := SaveKeyAction(ContactKey, TransitionStageActionCtx(newSaveQuestion))
+func (f *surveyFabric) newContactQuestion(answer string, ctx ConvCtx) ConversationHandler {
+	cancel := TransitionStageAction(f.newStartQuestion)
+	save := SaveKeyAction(ContactKey, TransitionStageActionCtx(f.newSaveQuestion))
 	handlers := ConversationOptionsHandlers{
 		Cancel: cancel,
 	}
 	// todo: if have contact - add it
-  username := ctx.Update().GetSender().UserName
+	username := ctx.Update().GetSender().UserName
 	if username != "" {
-    defaultContact := fmt.Sprintf("tg: @",username)
+		defaultContact := fmt.Sprint(ctx.Update().Provider(),": @", username)
 		handlers[defaultContact] = save
 	}
 	return NewConversationOptionsHandler(EmptyAction(), EnterContact, handlers, save)
 }
 
-func newSaveQuestion(answer string, ctx ConvCtx) ConversationHandler {
+func (f *surveyFabric) newSaveQuestion(answer string, ctx ConvCtx) ConversationHandler {
 	name, _ := ctx.GetKey(NameKey)
 	age, _ := ctx.GetKey(AgeKey)
 	city, _ := ctx.GetKey(CityKey)
@@ -535,30 +551,46 @@ func newSaveQuestion(answer string, ctx ConvCtx) ConversationHandler {
 		EnterContact, contact,
 		Accept)
 	saveSurvey := func(answer string, ctx ConvCtx) error {
-    if err:= SendTextAction(Thanks,EmptyAction())(answer,ctx); err != nil{
-      return err
-    }
-		// todo: save survey results
-    return TransitionStageAction(newStartQuestion)(answer,ctx)
+		if err := SendTextAction(Thanks, EmptyAction())(answer, ctx); err != nil {
+			return err
+		}
+    f.db.WriteAnswers(
+      fmt.Sprint(ctx.Update().Provider(),ctx.Update().ChatID()),
+      time.Now(),
+      name,
+      age,
+      city,
+      request,
+      fmt.Sprint(contact, "(",ctx.Update().Provider(),": @",ctx.Update().GetSender().UserName,")"),
+      )
+		return TransitionStageAction(f.newStartQuestion)(answer, ctx)
 	}
 	return NewConversationOptionsHandler(EmptyAction(), question, ConversationOptionsHandlers{
 		Submit:        saveSurvey,
-		ChangeName:    TransitionStageActionCtx(newNameQuestion(true)),
-		ChangeAge:     TransitionStageActionCtx(newAgeQuestion(true)),
-		ChangeCity:    TransitionStageActionCtx(newCityQuestion(true)),
-		ChangeRequest: TransitionStageActionCtx(newRequestQuestion(true)),
-		ChangeContact: TransitionStageActionCtx(newContactQuestion),
+		ChangeName:    TransitionStageActionCtx(f.newNameQuestion(true)),
+		ChangeAge:     TransitionStageActionCtx(f.newAgeQuestion(true)),
+		ChangeCity:    TransitionStageActionCtx(f.newCityQuestion(true)),
+		ChangeRequest: TransitionStageActionCtx(f.newRequestQuestion(true)),
+		ChangeContact: TransitionStageActionCtx(f.newContactQuestion),
 		Cancel: func(answer string, ctx ConvCtx) error {
 			// note: clear context storage might be needed
-			return TransitionStageAction(newStartQuestion)(answer, ctx)
+			return TransitionStageAction(f.newStartQuestion)(answer, ctx)
 		},
 	}, EmptyAction())
 }
 
+func newSurveyFabric() *surveyFabric {
+	return &surveyFabric{
+		db: newSuveyDB(os.Getenv(GOOGLE_CRED), os.Getenv(GOOGLE_SPREADSHEET_ID), os.Getenv(GOOGLE_SHEET_NAME)),
+	}
+}
+
 func main() {
-	tgbot, err := NewTelegramBot("token")
+	tgbot, err := NewTelegramBot(os.Getenv(TELEGRAM_TOKEN))
 	if err != nil {
 		panic(err)
 	}
-	log.Println(NewConversationManager(tgbot, newStartQuestion).Run().Error())
+	survey := newSurveyFabric()
+
+	log.Println(NewConversationManager(tgbot, survey.newStartQuestion).Run().Error())
 }
