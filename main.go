@@ -26,7 +26,7 @@ func (u User) FullName() string {
 }
 
 type Update interface {
-  Provider() string
+	Provider() string
 	ChatID() string
 	GetSender() User
 	GetMessage() string
@@ -188,7 +188,7 @@ func newTelegramUpdate(api *tgbotapi.BotAPI, tg_update tgbotapi.Update) *Telegra
 }
 
 func (upd *TelegramUpdate) Provider() string {
-  return "tg"
+	return "tg"
 }
 func (upd *TelegramUpdate) ChatID() string {
 	ch := upd.update.FromChat()
@@ -531,7 +531,7 @@ func (f *surveyFabric) newContactQuestion(answer string, ctx ConvCtx) Conversati
 	// todo: if have contact - add it
 	username := ctx.Update().GetSender().UserName
 	if username != "" {
-		defaultContact := fmt.Sprint(ctx.Update().Provider(),": @", username)
+		defaultContact := fmt.Sprint(ctx.Update().Provider(), ": @", username)
 		handlers[defaultContact] = save
 	}
 	return NewConversationOptionsHandler(EmptyAction(), EnterContact, handlers, save)
@@ -554,15 +554,15 @@ func (f *surveyFabric) newSaveQuestion(answer string, ctx ConvCtx) ConversationH
 		if err := SendTextAction(Thanks, EmptyAction())(answer, ctx); err != nil {
 			return err
 		}
-    f.db.WriteAnswers(
-      fmt.Sprint(ctx.Update().Provider(),ctx.Update().ChatID()),
-      time.Now(),
-      name,
-      age,
-      city,
-      request,
-      fmt.Sprint(contact, "(",ctx.Update().Provider(),": @",ctx.Update().GetSender().UserName,")"),
-      )
+		f.db.WriteAnswers(
+			fmt.Sprint(ctx.Update().Provider(), ctx.Update().ChatID()),
+			time.Now(),
+			name,
+			age,
+			city,
+			request,
+			fmt.Sprint(contact, "(", ctx.Update().Provider(), ": @", ctx.Update().GetSender().UserName, ")"),
+		)
 		return TransitionStageAction(f.newStartQuestion)(answer, ctx)
 	}
 	return NewConversationOptionsHandler(EmptyAction(), question, ConversationOptionsHandlers{
