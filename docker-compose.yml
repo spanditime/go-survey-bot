@@ -1,0 +1,11 @@
+
+
+services:
+  go-survey-bot:
+    build: 
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      GOOGLE_CREDENTIALS_FILE: "/google/credentials.json"
+    volumes:
+      - ./credentials.json:/google/credentials.json
