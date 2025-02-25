@@ -2,41 +2,45 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
+	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
 )
 
-// Retrieve a token, saves the token, then returns the generated client.
-func getClient(config *oauth2.Config) *http.Client {
-	tok := getTokenFromWeb(config)
-	return config.Client(context.Background(), tok)
+
+type jsondata struct{
+  Email string `json:"email"`
+  PrivateKey string `json:"private_key"`
+  PrivateKeyID string `json:"private_key_id"`
+  TokenURL string `json:"token_url"`
+  Scopes []string `json:"scopes"`
+}
+func getConfigFromFile(configFile string) (*jwt.Config, error) {
+  data, err :=os.ReadFile(configFile)
+  if err != nil{
+    return nil, err
+  }
+  j := &jsondata{}
+  err = json.Unmarshal(data, j)
+  if err != nil{
+    return nil, err
+  }
+  conf := &jwt.Config{
+    Email: j.Email,
+    PrivateKey: []byte(j.PrivateKey),
+    PrivateKeyID: j.PrivateKeyID,
+    TokenURL: j.TokenURL,
+    Scopes: j.Scopes,
+  }
+  return conf, err
 }
 
-// Request a token from the web, then returns the retrieved token.
-func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	fmt.Printf("Go to the following link in your browser then type the "+
-		"authorization code: \n%v\n", authURL)
-
-	var authCode string
-	if _, err := fmt.Scan(&authCode); err != nil {
-		log.Fatalf("Unable to read authorization code: %v", err)
-	}
-
-	tok, err := config.Exchange(context.TODO(), authCode)
-	if err != nil {
-		log.Fatalf("Unable to retrieve token from web: %v", err)
-	}
-	return tok
-}
 
 type SurveyDB struct{
   list string
@@ -46,17 +50,11 @@ type SurveyDB struct{
 }
 
 func newSuveyDB(credentialsFile string, spreadsheetId string,list string) *SurveyDB {
-	b, err := os.ReadFile(credentialsFile)
-	if err != nil {
-		log.Fatalf("Unable to read client secret file: %v", err)
-	}
-
-	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, "https://www.googleapis.com/auth/spreadsheets")
-	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
-	}
-	client := getClient(config)
+  conf, err := getConfigFromFile(credentialsFile)
+  if err != nil{
+    log.Fatalf("Unable to read credentials: %v", err)
+  }
+	client := conf.Client(context.TODO())
 
 	ctx := context.Background()
 	srv, err := sheets.NewService(ctx, option.WithHTTPClient(client))
