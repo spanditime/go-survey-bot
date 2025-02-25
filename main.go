@@ -89,6 +89,7 @@ func (m *ConversationManager) Run() error {
 			handle.Welcome(ctx)
 		}
 		if err = m.handle(&handle, ctx); err != nil {
+			// todo: log errors
 			log.Println(err)
 		}
 		m.sessions[update.ChatID()] = handle
@@ -258,7 +259,6 @@ type ConversationStageCtx = func(answer string, ctx ConvCtx) ConversationHandler
 func EmptyAction() ConversationAction { return func(answer string, ctx ConvCtx) error { return nil } }
 func SendTextAction(text string, next ConversationAction) ConversationAction {
 	return func(answer string, ctx ConvCtx) error {
-		log.Println("sending text ", text)
 		ctx.Update().Reply(text)
 		next(answer, ctx)
 		return nil
@@ -266,7 +266,6 @@ func SendTextAction(text string, next ConversationAction) ConversationAction {
 }
 func SendTextWithKeyboardAction(text string, keyboard []string, next ConversationAction) ConversationAction {
 	return func(answer string, ctx ConvCtx) error {
-		log.Println("sending text ", text, " with keyboard ", keyboard)
 		ctx.Update().ReplyWithKeyboard(text, keyboard)
 		next(answer, ctx)
 		return nil
@@ -274,7 +273,6 @@ func SendTextWithKeyboardAction(text string, keyboard []string, next Conversatio
 }
 func TransitionStageAction(next ConversationStage) ConversationAction {
 	return func(answer string, ctx ConvCtx) error {
-		log.Println("transitioning")
 		ctx.SetNext(next())
 		return nil
 	}
@@ -454,7 +452,6 @@ func (f *surveyFabric) newStartQuestion() ConversationHandler {
 }
 
 func (f *surveyFabric) newWelcomeQuestion() ConversationHandler {
-	log.Println("creating welcome question")
 	next := TransitionStageActionCtx(f.newNameQuestion(false))
 	cancel := TransitionStageAction(f.newStartQuestion)
 	return newYesNoConversationHandler(GoToSurvey, SendTextAction(WelcomeMessage, EmptyAction()), cancel, next, cancel)
@@ -554,15 +551,23 @@ func (f *surveyFabric) newSaveQuestion(answer string, ctx ConvCtx) ConversationH
 		if err := SendTextAction(Thanks, EmptyAction())(answer, ctx); err != nil {
 			return err
 		}
-		f.db.WriteAnswers(
-			fmt.Sprint(ctx.Update().Provider(), ctx.Update().ChatID()),
+
+		id := ctx.Update().ChatID()
+		contact = fmt.Sprintf("%s (%s: @%s)", contact, ctx.Update().Provider(), ctx.Update().GetSender().UserName)
+		err := f.db.WriteAnswers(
+			id,
 			time.Now(),
 			name,
 			age,
 			city,
 			request,
-			fmt.Sprint(contact, "(", ctx.Update().Provider(), ": @", ctx.Update().GetSender().UserName, ")"),
+			contact,
 		)
+		if err != nil {
+			// todo: log an error
+			log.Printf("Cant write survey results for user %s %s: %v", id, contact, err)
+			// todo: notify user
+		}
 		return TransitionStageAction(f.newStartQuestion)(answer, ctx)
 	}
 	return NewConversationOptionsHandler(EmptyAction(), question, ConversationOptionsHandlers{
