@@ -17,6 +17,7 @@ go-survey-bot
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+google/
 
 # Go workspace file
 go.work
