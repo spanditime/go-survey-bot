@@ -399,7 +399,7 @@ const (
 	ChangeAge     = "Изменить возраст"
 	ChangeCity    = "Изменить готовность к очным встречам"
 	ChangeRequest = "Изменить запрос"
-	ChangeHealth  = "Change Health Status"
+	ChangeHealth  = "Изменить информацию о здоровье"
 	ChangeContact = "Изменить контактные данные"
 
 	StartMessage = "Используйте /start что бы начать."
@@ -420,7 +420,7 @@ const (
 	EnterAge     = "Подскажите, сколько Вам лет?"
 	EnterCity    = "Вы готовы приходить на встречи очно в городе Дубна? (К сожалению, не все студенты готовы брать на онлайн-консультации, поэтому вероятность попасть на очное консультирование выше, чем онлайн)"
 	EnterRequest = "Пожалуйста, попробуйте описать Ваш запрос в одном или двух предложениях (что Вас беспокоит или что хотелось бы изменить)."
-	EnterHealth  = "Ваш запрос связан с наличием болезней, психосоматики?"
+	EnterHealth  = "Есть ли у Вас жалобы на здоровье, хронические заболевания? Если да, пожалуйста, укажите их."
 	EnterContact = "Как мы можем связаться с вами? Просим оставить вас ссылку на соц. сети, почту или номер телефона (и предпочтительный тип связи по нему)."
 	Accept       = "Информация верна?"
 	Thanks       = "Благодарим за обращение! Мы рассмотрим заявку и свяжемся с Вами в случае, если найдется специалист."
@@ -527,7 +527,12 @@ func (f *surveyFabric) newHealthQuestion(fall bool) func(answer string, ctx Conv
 	return func(answer string, ctx ConvCtx) ConversationHandler {
 		cancel := TransitionStageAction(f.newStartQuestion)
 		save := saveSurveyAnswer(HealthKey, fall, TransitionStageActionCtx(f.newSaveQuestion), TransitionStageActionCtx(f.newContactQuestion))
-		return newYesNoConversationHandler(EnterHealth, EmptyAction(), save, save, cancel)
+		handlers := ConversationOptionsHandlers{
+			Cancel: cancel,
+			Yes:    save,
+			No:     save,
+		}
+		return NewConversationOptionsHandler(EmptyAction(), EnterHealth, handlers, save)
 	}
 }
 
