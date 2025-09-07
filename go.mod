@@ -1,9 +1,14 @@
 module github.com/spanditime/go-survey-bot
 
-go 1.23.3
+go 1.24.5
+
+replace github.com/spanditime/go-survey-bot/telegram => ./agents/telegram
+
+replace github.com/spanditime/go-survey-bot/conversation => ./conversation
 
 require (
-	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
+	github.com/spanditime/go-survey-bot/conversation v0.0.0-00010101000000-000000000000
+	github.com/spanditime/go-survey-bot/telegram v0.0.0-00010101000000-000000000000
 	google.golang.org/api v0.222.0
 )
 
@@ -14,6 +19,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect

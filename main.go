@@ -8,7 +8,7 @@ import (
 	"log"
 
 	"github.com/spanditime/go-survey-bot/conversation"
-	"github.com/spanditime/go-survey-bot/agents/telegram"
+	"github.com/spanditime/go-survey-bot/telegram"
 )
 
 // library part
