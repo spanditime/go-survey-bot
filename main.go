@@ -434,6 +434,7 @@ const (
 	HealthKey  = "health"
 	ContactKey = "contact"
 
+	DATE_SAVE_LOCATION    = "SURV_DATE_SAVE_LOCATION"
 	GOOGLE_CRED           = "GOOGLE_CREDENTIALS_FILE"
 	GOOGLE_SHEET_NAME     = "GOOGLE_SHEET_NAME"
 	GOOGLE_SPREADSHEET_ID = "GOOGLE_SPREADSHEET_ID"
@@ -601,7 +602,7 @@ func (f *surveyFabric) newSaveQuestion(answer string, ctx ConvCtx) ConversationH
 
 func newSurveyFabric() *surveyFabric {
 	return &surveyFabric{
-		db: newSuveyDB(os.Getenv(GOOGLE_CRED), os.Getenv(GOOGLE_SPREADSHEET_ID), os.Getenv(GOOGLE_SHEET_NAME)),
+		db: newSuveyDB(os.Getenv(GOOGLE_CRED), os.Getenv(GOOGLE_SPREADSHEET_ID), os.Getenv(GOOGLE_SHEET_NAME), os.Getenv(DATE_SAVE_LOCATION)),
 	}
 }
 
