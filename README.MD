@@ -13,4 +13,7 @@
 export GOOGLE_SHEET_NAME="{название листа excel}"
 export GOOGLE_SPREADSHEET_ID="{id документа}"
 export TELEGRAM_BOT_TOKEN="{токен telegram bot api}"
+
+# optioonal
+export SURV_DATE_SAVE_LOCATION="Europe/Moscow"
 ```
