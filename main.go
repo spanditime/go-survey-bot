@@ -223,11 +223,20 @@ func newSurveyFabric() *surveyFabric {
 }
 
 func main() {
-	tgbot, err := tg.NewBot(os.Getenv(TELEGRAM_TOKEN))
-	if err != nil {
-		panic(err)
-	}
 	survey := newSurveyFabric()
 
-	log.Println(conversation.NewManager(tgbot, survey.newStartQuestion).Run().Error())
+	manager := conversation.NewManager(survey.newStartQuestion)
+
+	// register tg bot agent
+	if tgtoken, use := os.LookupEnv(TELEGRAM_TOKEN); use {
+		tgbot, err := tg.NewBot(tgtoken)
+		if err != nil {
+			panic(err)
+		}
+		manager.AddAgent(tgbot)
+	}
+
+	// todo: egister vk bot agent
+
+	log.Println(manager.Run().Error())
 }

@@ -3,6 +3,7 @@ package conversation
 import (
 	"fmt"
 	"log"
+	"sync"
 )
 
 // interfaces for conversation management
@@ -43,9 +44,14 @@ type session struct {
 	KeyStorage keystorage
 }
 
+type agentRunner struct{
+	agent Agent
+	sessions map[string]session
+	channel chan Update
+}
+
 type Manager struct {
-	sessions   map[string]session
-	agent      Agent
+	runners    []agentRunner
 	entryPoint func() Handler
 }
 
@@ -76,7 +82,7 @@ func newContext(update Update, ks *keystorage) Ctx {
 	}
 }
 
-func (ctx *ctx) Close()                           { ctx.closed = true }
+func (ctx *ctx) Close()               { ctx.closed = true }
 func (ctx *ctx) SetNext(next Handler) { ctx.next = next }
 func (ctx *ctx) Next() (Handler, bool) {
 	return ctx.next, ctx.Transitioning() && !ctx.Closed()
@@ -91,16 +97,50 @@ func (ctx *ctx) GetKey(key string) (interface{}, bool) {
 }
 func (ctx *ctx) SetKey(key string, value interface{}) { (*ctx.storage)[key] = value }
 
+func newAgentRunner(agent Agent) agentRunner{
+	return agentRunner{
+		agent: agent,
+		sessions: make(map[string]session),
+	};
+}
 
-func NewManager(agent Agent, entryPoint func() Handler) *Manager {
+func NewManager(entryPoint func() Handler) *Manager {
 	return &Manager{
-		agent:      agent,
+		runners:    make([]agentRunner,0),
 		entryPoint: entryPoint,
-		sessions:   make(map[string]session),
 	}
 }
 
-func (m *Manager) handle(handle *Handler, ctx Ctx) error {
+
+func (m *Manager) AddAgent(agent Agent){
+	m.runners = append(m.runners, newAgentRunner(agent))
+}
+
+func (m *Manager) Run() error {
+	var wg sync.WaitGroup
+	if len(m.runners) == 0 {
+		return fmt.Errorf("Trying to start with no registered agents");
+	}
+	defer m.Stop();
+	for _, runner := range m.runners{
+		ec := runner.Run(m.entryPoint, &wg);
+		if ec != nil {
+			return ec;
+		}
+	}
+
+	// wait for all runners to stop
+	wg.Wait()
+	return nil
+}
+
+func (m *Manager) Stop() {
+	for _, runner := range m.runners{
+		runner.Stop()
+	}
+}
+
+func (m *agentRunner) handle(handle *Handler, ctx Ctx) error {
 	(*handle).Handle(ctx)
 	if next, v := ctx.Next(); v {
 		(*handle) = next
@@ -112,38 +152,43 @@ func (m *Manager) handle(handle *Handler, ctx Ctx) error {
 	return nil
 }
 
-func (m *Manager) runAgent(agent Agent) error {
-	ch, err := agent.Run()
+func (m *agentRunner) Run(entryPoint func() Handler, wg *sync.WaitGroup) error {
+	wg.Add(1)
+	ch, err := m.agent.Run()
 	if err != nil {
 		return err
 	}
+	m.channel = ch
+	go func() {
+		for update := range m.channel {
+			var sess session = session{}
+			var found bool
+			chatID := update.ChatID()
+			if sess, found = m.sessions[chatID]; !found {
+				m.sessions[chatID] = sess
+			}
+			if sess.KeyStorage == nil {
+				sess.KeyStorage = make(keystorage)
+			}
 
-	for update := range ch {
-		var sess session = session{}
-		var found bool
-		chatID := update.ChatID()
-		if sess, found = m.sessions[chatID]; !found {
+			ctx := newContext(update, &sess.KeyStorage)
+			if sess.Handler == nil {
+				sess.Handler = entryPoint()
+				sess.Handler.Welcome(ctx)
+			}
+			if err = m.handle(&sess.Handler, ctx); err != nil {
+				// todo: log errors
+				log.Println(err)
+			}
 			m.sessions[chatID] = sess
 		}
-		if sess.KeyStorage == nil{
-			sess.KeyStorage = make(keystorage)
-		}
-
-		ctx := newContext(update, &sess.KeyStorage)
-		if sess.Handler == nil {
-			sess.Handler = m.entryPoint()
-			sess.Handler.Welcome(ctx)
-		}
-		if err = m.handle(&sess.Handler, ctx); err != nil {
-			// todo: log errors
-			log.Println(err)
-		}
-		m.sessions[chatID] = sess
-	}
+		wg.Done()
+	}()
 
 	return nil
 }
 
-func (m *Manager) Run() error{
-	return m.runAgent(m.agent)
+func (r *agentRunner) Stop() {
+	close(r.channel)
 }
+
