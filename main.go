@@ -399,6 +399,7 @@ const (
 	ChangeAge     = "Изменить возраст"
 	ChangeCity    = "Изменить готовность к очным встречам"
 	ChangeRequest = "Изменить запрос"
+	ChangeHealth  = "Change Health Status"
 	ChangeContact = "Изменить контактные данные"
 
 	StartMessage = "Используйте /start что бы начать."
@@ -419,6 +420,7 @@ const (
 	EnterAge     = "Подскажите, сколько Вам лет?"
 	EnterCity    = "Вы готовы приходить на встречи очно в городе Дубна? (К сожалению, не все студенты готовы брать на онлайн-консультации, поэтому вероятность попасть на очное консультирование выше, чем онлайн)"
 	EnterRequest = "Пожалуйста, попробуйте описать Ваш запрос в одном или двух предложениях (что Вас беспокоит или что хотелось бы изменить)."
+	EnterHealth  = "Ваш запрос связан с наличием болезней, психосоматики?"
 	EnterContact = "Как мы можем связаться с вами? Просим оставить вас ссылку на соц. сети, почту или номер телефона (и предпочтительный тип связи по нему)."
 	Accept       = "Информация верна?"
 	Thanks       = "Благодарим за обращение! Мы рассмотрим заявку и свяжемся с Вами в случае, если найдется специалист."
@@ -429,6 +431,7 @@ const (
 	AgeKey     = "age"
 	CityKey    = "city"
 	RequestKey = "request"
+	HealthKey  = "health"
 	ContactKey = "contact"
 
 	GOOGLE_CRED           = "GOOGLE_CREDENTIALS_FILE"
@@ -511,11 +514,19 @@ func (f *surveyFabric) newCityQuestion(fall bool) func(answer string, ctx ConvCt
 func (f *surveyFabric) newRequestQuestion(fall bool) func(answer string, ctx ConvCtx) ConversationHandler {
 	return func(answer string, ctx ConvCtx) ConversationHandler {
 		cancel := TransitionStageAction(f.newStartQuestion)
-		save := saveSurveyAnswer(RequestKey, fall, TransitionStageActionCtx(f.newSaveQuestion), TransitionStageActionCtx(f.newContactQuestion))
+		save := saveSurveyAnswer(RequestKey, fall, TransitionStageActionCtx(f.newSaveQuestion), TransitionStageActionCtx(f.newHealthQuestion(false)))
 		handlers := ConversationOptionsHandlers{
 			Cancel: cancel,
 		}
 		return NewConversationOptionsHandler(EmptyAction(), EnterRequest, handlers, save)
+	}
+}
+
+func (f *surveyFabric) newHealthQuestion(fall bool) func(answer string, ctx ConvCtx) ConversationHandler {
+	return func(answer string, ctx ConvCtx) ConversationHandler {
+		cancel := TransitionStageAction(f.newStartQuestion)
+		save := saveSurveyAnswer(HealthKey, fall, TransitionStageActionCtx(f.newSaveQuestion), TransitionStageActionCtx(f.newContactQuestion))
+		return newYesNoConversationHandler(EnterHealth, EmptyAction(), save, save, cancel)
 	}
 }
 
@@ -539,12 +550,14 @@ func (f *surveyFabric) newSaveQuestion(answer string, ctx ConvCtx) ConversationH
 	age, _ := ctx.GetKey(AgeKey)
 	city, _ := ctx.GetKey(CityKey)
 	request, _ := ctx.GetKey(RequestKey)
+	health, _ := ctx.GetKey(HealthKey)
 	contact, _ := ctx.GetKey(ContactKey)
-	question := fmt.Sprintf("%s\n%s\n\n%s\n%s\n\n%s\n%s\n\n%s\n%s\n\n%s\n%s\n\n%s",
+	question := fmt.Sprintf("%s\n%s\n\n%s\n%s\n\n%s\n%s\n\n%s\n%s\n\n%s\n%s\n\n%s\n%s\n\n%s",
 		EnterName, name,
 		EnterAge, age,
 		EnterCity, city,
 		EnterRequest, request,
+		EnterHealth, health,
 		EnterContact, contact,
 		Accept)
 	saveSurvey := func(answer string, ctx ConvCtx) error {
@@ -561,6 +574,7 @@ func (f *surveyFabric) newSaveQuestion(answer string, ctx ConvCtx) ConversationH
 			age,
 			city,
 			request,
+			health,
 			contact,
 		)
 		if err != nil {
@@ -576,6 +590,7 @@ func (f *surveyFabric) newSaveQuestion(answer string, ctx ConvCtx) ConversationH
 		ChangeAge:     TransitionStageActionCtx(f.newAgeQuestion(true)),
 		ChangeCity:    TransitionStageActionCtx(f.newCityQuestion(true)),
 		ChangeRequest: TransitionStageActionCtx(f.newRequestQuestion(true)),
+		ChangeHealth:  TransitionStageActionCtx(f.newHealthQuestion(true)),
 		ChangeContact: TransitionStageActionCtx(f.newContactQuestion),
 		Cancel: func(answer string, ctx ConvCtx) error {
 			// note: clear context storage might be needed

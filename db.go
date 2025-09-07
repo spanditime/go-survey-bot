@@ -30,13 +30,20 @@ func newSuveyDB(credentialsFile string, spreadsheetId string, list string) *Surv
 	}
 }
 
-func (db *SurveyDB) WriteAnswers(ID string, time time.Time, name interface{}, age interface{}, city interface{}, request interface{}, contact interface{}) error {
+func (db *SurveyDB) WriteAnswers(ID string, time time.Time, name interface{}, age interface{}, city interface{}, request interface{}, health interface{}, contact interface{}) error {
 	range_ := db.list + "!A:A"
 	valuerange := sheets.ValueRange{
 
 		Values: [][]interface{}{
 			{
-				ID, time.UTC(), name, age, city, request, contact,
+				ID,
+				time.UTC(),
+				name,
+				age,
+				city,
+				request,
+				health,
+				contact,
 			},
 		},
 	}
