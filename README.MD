@@ -17,3 +17,4 @@ export TELEGRAM_BOT_TOKEN="{токен telegram bot api}"
 # optioonal
 export SURV_DATE_SAVE_LOCATION="Europe/Moscow"
 ```
+```SURV_DATE_SAVE_LOCATION``` - локация - timezone в формате которого сохраняется дата(по умолчанию используется локальная - это для случаев если часовой пояс необходимый и тот в котором находится хост различаются)
