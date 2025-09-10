@@ -9,5 +9,13 @@ services:
     env_file: .env
     environment:
       GOOGLE_CREDENTIALS_FILE: "/google/credentials.json"
+      # those are optional(only one can be set, or both)
+      # so if you dont wanna use vk or telegram - just dont set the variable 
+      # (if the variable is empty it will result in faultstart)
+      # VK_BOT_TOKEN: ${VK_BOT_TOKEN}
+      # TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      GOOGLE_SPREADSHEET_ID: ${GOOGLE_SPREADSHEET_ID}
+      GOOGLE_SHEET_NAME: ${GOOGLE_SHEET_NAME}
+      SURV_DATE_SAVE_LOCATION: ${SURV_DATE_SAVE_LOCATION}
     volumes:
       - ./google:/google
