@@ -9,6 +9,7 @@ import (
 
 	"github.com/spanditime/go-survey-bot/conversation"
 	"github.com/spanditime/go-survey-bot/telegram"
+	"github.com/spanditime/go-survey-bot/vk"
 )
 
 // library part
@@ -71,6 +72,7 @@ const (
 	GOOGLE_SHEET_NAME     = "GOOGLE_SHEET_NAME"
 	GOOGLE_SPREADSHEET_ID = "GOOGLE_SPREADSHEET_ID"
 	TELEGRAM_TOKEN        = "TELEGRAM_BOT_TOKEN"
+	VK_TOKEN              = "VK_BOT_TOKEN"
 )
 
 type surveyFabric struct {
@@ -257,7 +259,14 @@ func main() {
 		manager.AddAgent(tgbot)
 	}
 
-	// todo: egister vk bot agent
+	// register vk bot agent
+	if vktoken, use := os.LookupEnv(VK_TOKEN); use {
+		vkbot, err := vk.NewBot(vktoken)
+		if err != nil {
+			panic(err)
+		}
+		manager.AddAgent(vkbot)
+	}
 
 	log.Println(manager.Run().Error())
 }

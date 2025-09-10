@@ -9,5 +9,10 @@ services:
     env_file: .env
     environment:
       GOOGLE_CREDENTIALS_FILE: "/google/credentials.json"
+      VK_BOT_TOKEN: ${VK_BOT_TOKEN}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      GOOGLE_SPREADSHEET_ID: ${GOOGLE_SPREADSHEET_ID}
+      GOOGLE_SHEET_NAME: ${GOOGLE_SHEET_NAME}
+      SURV_DATE_SAVE_LOCATION: ${SURV_DATE_SAVE_LOCATION}
     volumes:
       - ./google:/google

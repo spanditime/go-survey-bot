@@ -6,9 +6,12 @@ replace github.com/spanditime/go-survey-bot/telegram => ./agents/telegram
 
 replace github.com/spanditime/go-survey-bot/conversation => ./conversation
 
+replace github.com/spanditime/go-survey-bot/vk => ./agents/vk
+
 require (
 	github.com/spanditime/go-survey-bot/conversation v0.0.0-00010101000000-000000000000
 	github.com/spanditime/go-survey-bot/telegram v0.0.0-00010101000000-000000000000
+	github.com/spanditime/go-survey-bot/vk v0.0.0-00010101000000-000000000000
 	google.golang.org/api v0.222.0
 )
 
