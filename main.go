@@ -8,7 +8,7 @@ import (
 	"log"
 
 	"github.com/spanditime/go-survey-bot/conversation"
-	"github.com/spanditime/go-survey-bot/telegram"
+	tg "github.com/spanditime/go-survey-bot/telegram"
 	"github.com/spanditime/go-survey-bot/vk"
 )
 
@@ -86,7 +86,11 @@ func (f *surveyFabric) newStartQuestion() conversation.Handler {
 		}
 		return nil
 	}
-	return conversation.NewAnswerHandler(conversation.EmptyAction(), StartMessage, handle)
+	cancel := conversation.TransitionStageAction(f.newStartQuestion)
+	handlers := conversation.OptionsHandlers{
+		"/start": handle,
+	}
+	return conversation.NewOptionsHandler(conversation.EmptyAction(), StartMessage, handlers, cancel)
 }
 
 func (f *surveyFabric) newWelcomeQuestion() conversation.Handler {
@@ -179,7 +183,7 @@ func (f *surveyFabric) newContactQuestion(answer string, ctx conversation.Ctx) c
 	// todo: if have contact - add it
 	username := ctx.Update().GetSender().UserName
 	if username != "" {
-		defaultContact := fmt.Sprint(ctx.Update().Provider(), ": @", username)
+		defaultContact := fmt.Sprint(ctx.Update().Provider(), ": ", username)
 		handlers[defaultContact] = save
 	}
 	return conversation.NewOptionsHandler(conversation.EmptyAction(), EnterContact, handlers, save)
@@ -206,7 +210,7 @@ func (f *surveyFabric) newSaveQuestion(answer string, ctx conversation.Ctx) conv
 		}
 
 		id := ctx.Update().ChatID()
-		contact = fmt.Sprintf("%s (%s: @%s)", contact, ctx.Update().Provider(), ctx.Update().GetSender().UserName)
+		contact = fmt.Sprintf("%s (%s: %s)", contact, ctx.Update().Provider(), ctx.Update().GetSender().UserName)
 		err := f.db.WriteAnswers(
 			id,
 			time.Now(),
@@ -230,7 +234,7 @@ func (f *surveyFabric) newSaveQuestion(answer string, ctx conversation.Ctx) conv
 		ChangeAge:     conversation.TransitionStageActionCtx(f.newAgeQuestion(true)),
 		ChangeCity:    conversation.TransitionStageActionCtx(f.newCityQuestion(true)),
 		ChangeRequest: conversation.TransitionStageActionCtx(f.newRequestQuestion(true)),
-    ChangeHealth:  conversation.TransitionStageActionCtx(f.newHealthQuestion(true)),
+		ChangeHealth:  conversation.TransitionStageActionCtx(f.newHealthQuestion(true)),
 		ChangeContact: conversation.TransitionStageActionCtx(f.newContactQuestion),
 		Cancel: func(answer string, ctx conversation.Ctx) error {
 			// note: clear context storage might be needed

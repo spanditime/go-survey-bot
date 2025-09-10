@@ -63,7 +63,7 @@ func (upd *Update) GetSender() conversation.User {
 	sent_from := upd.update.SentFrom()
 	var name, surname, username, id string
 	if sent_from != nil {
-		name, surname, username, id = sent_from.FirstName, sent_from.LastName, sent_from.UserName, fmt.Sprint("tg", sent_from.ID)
+		name, surname, username, id = sent_from.FirstName, sent_from.LastName, "@"+sent_from.UserName, fmt.Sprint("tg", sent_from.ID)
 	}
 	return conversation.User{
 		Name:     name,

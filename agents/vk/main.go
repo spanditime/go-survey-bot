@@ -2,12 +2,12 @@ package vk
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/SevereCloud/vksdk/v3/api"
-	"github.com/SevereCloud/vksdk/v3/api/params"
 	"github.com/SevereCloud/vksdk/v3/events"
 	longpoll "github.com/SevereCloud/vksdk/v3/longpoll-bot"
 	"github.com/spanditime/go-survey-bot/conversation"
@@ -89,6 +89,13 @@ func (upd *Update) GetSender() conversation.User {
 		if users, err := upd.vk.UsersGet(api.Params{"user_ids": strconv.Itoa(fromID)}); err == nil && len(users) > 0 {
 			user.Name = users[0].FirstName
 			user.Surname = users[0].LastName
+			username := users[0].Nickname
+			if len(username)==0 {
+				username = "https://vk.com/id" + strconv.Itoa(users[0].ID)
+			}else{
+				username = "@" + username
+			}
+			user.UserName = username 
 		}
 	}
 	return user
@@ -123,20 +130,33 @@ func (upd *Update) ReplyWithKeyboard(text string, kb []string) error {
 	if len(kb) == 0 {
 		return upd.Reply(text)
 	}
-	msgbuilder := params.NewMessagesSendBuilder()
-	keyboard := make([]interface{}, len(kb))
-	for _, label := range kb {
-		keyboard = append(keyboard, []interface{}{
+	buttons := make([]interface{}, len(kb))
+	for i, label := range kb {
+		buttons[i] = []interface{}{
 			map[string]interface{}{
 				"action": map[string]interface{}{
-					"label": label,
-					"type":  "text",
+					"label":   label,
+					"type":    "text",
+					"payload": "{\"button\": \"1\"}",
 				},
 				"color": "secondary",
 			},
-		})
+		}
 	}
-	msgbuilder = msgbuilder.Keyboard(keyboard)
-	_, err := upd.vk.MessagesSend(msgbuilder.Params)
+	// convert to json
+	json, err := json.Marshal(map[string]interface{}{
+		"one_time": true,
+		"buttons":  buttons,
+	})
+	if err != nil {
+		return fmt.Errorf("json marshal failed: %v", err)
+	}
+	pars := api.Params{
+		"peer_id":   peerID,
+		"message":   text,
+		"random_id": int(time.Now().UnixNano() & 0x7fffffff),
+		"keyboard":  string(json),
+	}
+	_, err = upd.vk.MessagesSend(pars)
 	return err
 }
