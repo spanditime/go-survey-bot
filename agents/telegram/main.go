@@ -2,6 +2,7 @@ package tg
 
 import (
 	"fmt"
+	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/spanditime/go-survey-bot/conversation"
@@ -63,7 +64,13 @@ func (upd *Update) GetSender() conversation.User {
 	sent_from := upd.update.SentFrom()
 	var name, surname, username, id string
 	if sent_from != nil {
-		name, surname, username, id = sent_from.FirstName, sent_from.LastName, "@"+sent_from.UserName, fmt.Sprint("tg", sent_from.ID)
+		name, surname, id = sent_from.FirstName, sent_from.LastName, fmt.Sprint("tg", sent_from.ID)
+		username = sent_from.UserName
+		if len(username) == 0 {
+			username = "https://t.me/user?id=" + strconv.FormatInt(sent_from.ID, 10)
+		} else {
+			username = "@" + username
+		}
 	}
 	return conversation.User{
 		Name:     name,
