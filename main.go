@@ -266,8 +266,8 @@ func main() {
 
 	// register vk bot agent
 	if vktoken, use := os.LookupEnv(VK_TOKEN); use {
-		// vklogger := log.New(log.Writer(),"vkbot",log.LstdFlags&log.Lshortfile)
-		vkbot, err := vk.NewBot(vktoken)
+		vklogger := log.New(log.Writer(),"vkbot",log.LstdFlags&log.Lshortfile)
+		vkbot, err := vk.NewBot(vktoken, vklogger)
 		if err != nil {
 			panic(err)
 		}
