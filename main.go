@@ -182,7 +182,7 @@ func (f *surveyFabric) newContactQuestion(answer string, ctx conversation.Ctx) c
 	}
 	// todo: if have contact - add it
 	username := ctx.Update().GetSender().UserName
-	if username != "" {
+	if len(username) > 0 {
 		defaultContact := fmt.Sprint(ctx.Update().Provider(), ": ", username)
 		handlers[defaultContact] = save
 	}
@@ -256,7 +256,8 @@ func main() {
 
 	// register tg bot agent
 	if tgtoken, use := os.LookupEnv(TELEGRAM_TOKEN); use {
-		tgbot, err := tg.NewBot(tgtoken)
+		tglogger := log.New(log.Writer(),"tgbot",log.LstdFlags&log.Lshortfile)
+		tgbot, err := tg.NewBot(tgtoken, tglogger)
 		if err != nil {
 			panic(err)
 		}
@@ -265,7 +266,8 @@ func main() {
 
 	// register vk bot agent
 	if vktoken, use := os.LookupEnv(VK_TOKEN); use {
-		vkbot, err := vk.NewBot(vktoken)
+		vklogger := log.New(log.Writer(),"vkbot",log.LstdFlags&log.Lshortfile)
+		vkbot, err := vk.NewBot(vktoken, vklogger)
 		if err != nil {
 			panic(err)
 		}

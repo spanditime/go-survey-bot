@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -20,7 +21,8 @@ type Agent struct {
 	lp *longpoll.LongPoll
 }
 
-func NewBot(token string) (conversation.Agent, error) {
+func NewBot(token string, l *log.Logger) (conversation.Agent, error) {
+	setLogger(l)
 	if token == "" {
 		return nil, fmt.Errorf("vk token is empty")
 	}
@@ -41,6 +43,20 @@ func NewBot(token string) (conversation.Agent, error) {
 	}, nil
 }
 
+type Logger interface{
+	Println(v... interface{})
+}
+
+var logger Logger = log.Default()
+
+func setLogger(l Logger) error{
+	if l == nil {
+		return fmt.Errorf("empty logger provided")
+	}
+	logger = l
+	return nil
+}
+
 func (a *Agent) Run() (chan conversation.Update, error) {
 	if a == nil || a.vk == nil || a.lp == nil {
 		return nil, fmt.Errorf("vk agent is not initialized")
@@ -53,7 +69,14 @@ func (a *Agent) Run() (chan conversation.Update, error) {
 		}
 	})
 
-	go func() { _ = a.lp.Run() }()
+	go func() { 
+		err := a.lp.Run()
+		if err != nil {
+			logger.Println("longpoll-bot stopped with error: " , err.Error() )
+		}else{
+			logger.Println("longpoll-bot stopped with no error")
+		}
+	}()
 
 	return updates, nil
 }

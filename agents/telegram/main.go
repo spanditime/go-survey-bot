@@ -2,7 +2,7 @@ package tg
 
 import (
 	"fmt"
-	"strconv"
+	"log"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/spanditime/go-survey-bot/conversation"
@@ -14,7 +14,13 @@ type Agent struct {
 	api *tgbotapi.BotAPI
 }
 
-func NewBot(token string) (conversation.Agent, error) {
+func NewBot(token string, logger tgbotapi.BotLogger) (conversation.Agent, error) {
+	if logger != nil {
+		err := setLogger(logger)
+		if err != nil {
+			logger.Println("failed to set tgbotapi logger")
+		}
+	}
 	botapi, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, err
@@ -23,6 +29,17 @@ func NewBot(token string) (conversation.Agent, error) {
 	return &Agent{
 		api: botapi,
 	}, err
+}
+
+var logger tgbotapi.BotLogger = log.Default()
+
+func setLogger(l tgbotapi.BotLogger) error{
+	if l == nil {
+		return fmt.Errorf("provided logger is empty");
+	}
+	logger = l
+	err := tgbotapi.SetLogger(l)
+	return err
 }
 
 func (tg *Agent) Run() (chan conversation.Update, error) {
@@ -66,11 +83,11 @@ func (upd *Update) GetSender() conversation.User {
 	if sent_from != nil {
 		name, surname, id = sent_from.FirstName, sent_from.LastName, fmt.Sprint("tg", sent_from.ID)
 		username = sent_from.UserName
-		if len(username) == 0 {
-			username = "https://t.me/user?id=" + strconv.FormatInt(sent_from.ID, 10)
-		} else {
+		if len(username) != 0 {
 			username = "@" + username
 		}
+	}else{
+		logger.Println("update doesnt have sent from couldnt get sender : ", upd.update)
 	}
 	return conversation.User{
 		Name:     name,
@@ -92,6 +109,7 @@ func (upd *Update) Reply(text string) error {
 		msg := tgbotapi.NewMessage(reply_to.Chat.ID, text)
 		_, err := upd.api.Send(msg)
 		if err != nil {
+			logger.Printf(err.Error())
 			return err
 		}
 	}
@@ -110,9 +128,13 @@ func (upd *Update) ReplyWithKeyboard(text string, kb []string) error {
 		msg.ReplyMarkup = keyb
 		_, err := upd.api.Send(msg)
 		if err != nil {
+			logger.Printf(err.Error())
 			return err
 		}
+		return nil
 	}
 	//todo log an error here)
+	err := fmt.Errorf("nobody to reply to on update: ", upd.update)
+	logger.Println(err.Error())
 	return nil
 }
