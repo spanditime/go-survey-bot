@@ -70,11 +70,16 @@ func (a *Agent) Run() (chan conversation.Update, error) {
 	})
 
 	go func() { 
-		err := a.lp.Run()
-		if err != nil {
-			logger.Println("longpoll-bot stopped with error: " , err.Error() )
-		}else{
-			logger.Println("longpoll-bot stopped with no error")
+		for true{
+			logger.Println("starting longpoll-bot")
+			err := a.lp.Run()
+			if err != nil {
+				logger.Println("longpoll-bot stopped with error: " , err.Error() )
+			}else{
+				logger.Println("longpoll-bot stopped with no error")
+			}
+			logger.Println("restarting longpoll-bot after 5 seconds" )
+			time.Sleep(time.Second * 5)
 		}
 	}()
 

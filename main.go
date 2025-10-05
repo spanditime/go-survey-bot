@@ -256,7 +256,7 @@ func main() {
 
 	// register tg bot agent
 	if tgtoken, use := os.LookupEnv(TELEGRAM_TOKEN); use {
-		tglogger := log.New(log.Writer(),"tgbot",log.LstdFlags&log.Lshortfile)
+		tglogger := log.New(log.Writer(), "tgbot: ", log.LstdFlags&log.Lshortfile)
 		tgbot, err := tg.NewBot(tgtoken, tglogger)
 		if err != nil {
 			panic(err)
@@ -266,7 +266,7 @@ func main() {
 
 	// register vk bot agent
 	if vktoken, use := os.LookupEnv(VK_TOKEN); use {
-		vklogger := log.New(log.Writer(),"vkbot",log.LstdFlags&log.Lshortfile)
+		vklogger := log.New(log.Writer(), "vkbot: ", log.LstdFlags&log.Lshortfile)
 		vkbot, err := vk.NewBot(vktoken, vklogger)
 		if err != nil {
 			panic(err)
