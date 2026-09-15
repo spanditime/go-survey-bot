@@ -83,11 +83,11 @@ func loadConfigFromEnv() (*config, error) {
 		conf.GoogleSheetId = sheetId
 	}
 
-	if tg, err := getVar(TELEGRAM_BOT_TOKEN); err != nil {
+	if tg, err := getVar(TELEGRAM_BOT_TOKEN); err == nil {
 		conf.TgToken = &tg
 	}
 
-	if vk, err := getVar(VK_BOT_TOKEN); err != nil {
+	if vk, err := getVar(VK_BOT_TOKEN); err == nil {
 		conf.VkToken = &vk
 	}
 
