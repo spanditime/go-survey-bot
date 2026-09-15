@@ -1,8 +1,8 @@
-package main
+package survey
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"time"
 	_ "time/tzdata"
 
@@ -17,27 +17,26 @@ type SurveyDB struct {
 	location      *time.Location
 }
 
-func newSuveyDB(credentialsFile string, spreadsheetId string, list string, location string) *SurveyDB {
+func NewSuveyDB(credentialsJson []byte, spreadsheetId string, list string, location string) (*SurveyDB,error) {
 	loc, err := time.LoadLocation(location);
 	if err != nil {
-		loc, err = time.LoadLocation("Local")
-		if err != nil {
-			return nil
-		}
+		return nil, err
 	}
 	ctx := context.Background()
 	// client := conf.Client(ctx)
 
-	srv, err := sheets.NewService(ctx, option.WithCredentialsFile(credentialsFile))
+
+	srv, err := sheets.NewService(ctx, option.WithCredentialsJSON(credentialsJson))
 	if err != nil {
-		log.Fatalf("Unable to retrieve Sheets client: %v", err)
+		return nil, fmt.Errorf("Unable to retrieve Sheets client: %v", err)
 	}
+
 	return &SurveyDB{
 		list:          list,
 		spreadsheetId: spreadsheetId,
 		srv:           srv,
 		location:      loc,
-	}
+	}, nil
 }
 
 func (db *SurveyDB) WriteAnswers(ID string, time time.Time, name interface{}, age interface{}, city interface{}, request interface{}, health interface{}, contact interface{}) error {
