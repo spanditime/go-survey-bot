@@ -10,12 +10,12 @@ services:
 
     env_file: .env
     environment:
-      # those are optional(at least one must be set or the app will fail to start)
-      VK_BOT_TOKEN: ${VK_BOT_TOKEN}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      SURV_DATE_SAVE_LOCATION: ${SURV_DATE_SAVE_LOCATION}
 
       GOOGLE_CREDENTIALS_JSON: ${GOOGLE_CREDENTIALS_JSON}
       GOOGLE_SPREADSHEET_ID: ${GOOGLE_SPREADSHEET_ID}
       GOOGLE_SHEET_NAME: ${GOOGLE_SHEET_NAME}
 
-      SURV_DATE_SAVE_LOCATION: ${SURV_DATE_SAVE_LOCATION}
+      # those are optional(at least one must be set or the app will fail to start)
+      VK_BOT_TOKEN: ${VK_BOT_TOKEN}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
