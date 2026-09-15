@@ -6,4 +6,5 @@ ADD go.sum ./
 ADD conversation ./conversation
 ADD agents ./agents
 RUN go build 
+
 CMD ./go-survey-bot
